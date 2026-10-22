@@ -1,18 +1,14 @@
-name: Daily Whistle & Auto-Commit
+name: Manual Whistle & Build
 
 on:
-  schedule:
-    # 每天北京时间上午 10:15 自动运行 (对应 UTC 02:15)
-    - cron: '15 2 * * *'
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch: # 支持在 GitHub 网页上手动点击按钮触发
+  # 已根据需求停用定时任务，不再消耗任何 GitHub 自动化算力额度
+  # schedule:
+  #   - cron: '15 2 * * *'
+  workflow_dispatch: # 仅保留手动测试触发
 
 permissions:
-  contents: write # 赋予 Actions 写入和提交推送代码的权限
-  pages: write    # 赋予部署 GitHub Pages 的权限
+  contents: write
+  pages: write
   id-token: write
 
 jobs:
@@ -31,18 +27,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and Run Whistleblower (Batch Mode)
+      - name: Build and Run Whistleblower
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 开始构建并执行吹哨人巡检任务..."
           mvn compile exec:java -Dexec.mainClass="com.github.fengyaocheng.whistleblower.WhistleblowerApplication" -Dexec.args="--whistleblower.cli-mode=true"
-
-      - name: Commit and Push Daily Report
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(report): auto-generate daily open-source intel report [skip ci]"
-          file_pattern: "reports/*.md"
-          commit_user_name: "whistleblower-bot"
-          commit_user_email: "actions@github.com"
-          commit_author: "Whistleblower Bot <actions@github.com>"
