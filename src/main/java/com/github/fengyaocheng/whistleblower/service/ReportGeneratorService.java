@@ -13,7 +13,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 报告生成器服务：将探测收集到的开源情报格式化并输出为 Markdown 日报
@@ -86,5 +90,44 @@ public class ReportGeneratorService {
         Files.writeString(targetFilePath, sb.toString(), StandardCharsets.UTF_8);
         log.info("🎉 吹哨人日报已成功生成至: {}", targetFilePath.toAbsolutePath());
         return targetFilePath;
+    }
+
+    /**
+     * 获取所有现存的历史报表文件列表（按时间倒序排列）
+     */
+    public List<String> listAvailableReports() {
+        Path outputDirPath = Paths.get(properties.getOutputDir());
+        if (!Files.exists(outputDirPath)) {
+            return Collections.emptyList();
+        }
+
+        try (Stream<Path> stream = Files.list(outputDirPath)) {
+            return stream.filter(path -> path.toString().endsWith(".md"))
+                    .map(path -> path.getFileName().toString())
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            log.error("读取历史报表列表失败", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 读取指定历史报表的 Markdown 全文内容
+     */
+    public String readReportContent(String fileName) throws IOException {
+        Path outputDirPath = Paths.get(properties.getOutputDir());
+        Path targetPath = outputDirPath.resolve(fileName).normalize();
+
+        // 安全检查：防止路径穿越
+        if (!targetPath.startsWith(outputDirPath.toAbsolutePath().normalize()) && !targetPath.startsWith(outputDirPath.normalize())) {
+            throw new IllegalArgumentException("非法的文件访问路径");
+        }
+
+        if (!Files.exists(targetPath)) {
+            return "文件不存在: " + fileName;
+        }
+
+        return Files.readString(targetPath, StandardCharsets.UTF_8);
     }
 }

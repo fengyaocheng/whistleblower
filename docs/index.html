@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>吹哨人 (Whistleblower) - 开源安全与版本情报仪表盘</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Marked.js Markdown 渲染器 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Markdown 渲染美化样式 */
+    .markdown-body {
+      color: #e2e8f0;
+      line-height: 1.7;
+    }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      color: #f8fafc;
+      font-weight: 700;
+      margin-top: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .markdown-body h1 { font-size: 1.75rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
+    .markdown-body h2 { font-size: 1.35rem; }
+    .markdown-body h3 { font-size: 1.15rem; }
+    .markdown-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    .markdown-body th, .markdown-body td {
+      border: 1px solid #334155;
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+    }
+    .markdown-body th { background-color: #1e293b; color: #94a3b8; }
+    .markdown-body tr:nth-child(even) { background-color: #0f172a; }
+    .markdown-body code {
+      background: #1e293b;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.875em;
+      color: #38bdf8;
+    }
+    .markdown-body pre {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+    .markdown-body pre code { background: transparent; padding: 0; color: #cbd5e1; }
+    .markdown-body a { color: #60a5fa; text-decoration: underline; }
+    .markdown-body blockquote {
+      border-left: 4px solid #3b82f6;
+      padding-left: 1rem;
+      color: #94a3b8;
+      background: #1e293b;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-radius: 0 0.375rem 0.375rem 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-600 selection:text-white">
+  <div id="app" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- 顶部导航栏 -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-8 border-b border-slate-800 gap-4">
+      <div class="flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-2xl shadow-lg shadow-blue-500/20">
+          📢
+        </div>
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold tracking-tight text-white">吹哨人 (Whistleblower)</h1>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              系统在线
+            </span>
+          </div>
+          <p class="text-sm text-slate-400 mt-0.5">开源软件版本动态、安全漏洞情报智能哨兵 & 自动化巡检平台</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- 立即巡检按钮 -->
+        <button 
+          @click="triggerScan" 
+          :disabled="scanning"
+          class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-md shadow-blue-600/30 transition disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg v-if="scanning" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <svg v-else class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          {{ scanning ? '巡检探测中...' : '立即执行巡检' }}
+        </button>
+
+        <!-- GitHub 跳转链接 -->
+        <a 
+          href="https://github.com/fengyaocheng/whistleblower" 
+          target="_blank"
+          class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg border border-slate-700 hover:border-slate-600 bg-slate-900/60 hover:bg-slate-800 text-slate-300 transition">
+          <svg class="w-4 h-4 mr-2 fill-current" viewBox="0 0 24 24">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+          </svg>
+          GitHub 仓库
+        </a>
+      </div>
+    </header>
+
+    <!-- 顶部数据看板卡片 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 shadow-sm">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+          <span>监控项目数</span>
+          <span>📦</span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-white tracking-tight">{{ status.monitoredCount || 0 }}</div>
+        <p class="text-xs text-slate-500 mt-1">自动配置于 application.yml</p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 shadow-sm">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+          <span>最新捕获版本</span>
+          <span>⚡</span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-blue-400 tracking-tight">{{ releases.length }}</div>
+        <p class="text-xs text-slate-500 mt-1">全网 GitHub API 动态实时探查</p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 shadow-sm">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+          <span>归档历史日报</span>
+          <span>📑</span>
+        </div>
+        <div class="mt-2 text-3xl font-extrabold text-indigo-400 tracking-tight">{{ reports.length }}</div>
+        <p class="text-xs text-slate-500 mt-1">保存在 reports/ 目录</p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 shadow-sm">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+          <span>底层技术栈</span>
+          <span>☕</span>
+        </div>
+        <div class="mt-2 text-xl font-bold text-emerald-400 tracking-tight">Java 21 + Spring Boot 3</div>
+        <p class="text-xs text-slate-500 mt-1">云原生 / GitHub Actions 定时驱动</p>
+      </div>
+    </div>
+
+    <!-- 视图切换选项卡 -->
+    <div class="flex border-b border-slate-800 mb-6">
+      <button 
+        @click="activeTab = 'cards'"
+        :class="activeTab === 'cards' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
+        class="py-3 px-5 border-b-2 font-medium text-sm transition flex items-center gap-2">
+        <span>🔍 关注仓库最新 Release 矩阵</span>
+        <span class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{{ releases.length }}</span>
+      </button>
+      <button 
+        @click="activeTab = 'reports'"
+        :class="activeTab === 'reports' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
+        class="py-3 px-5 border-b-2 font-medium text-sm transition flex items-center gap-2">
+        <span>📑 在线查看历史 Markdown 日报</span>
+        <span class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{{ reports.length }}</span>
+      </button>
+    </div>
+
+    <!-- 选项卡 1：卡片矩阵展示 -->
+    <div v-if="activeTab === 'cards'">
+      <div v-if="loadingReleases" class="py-12 text-center text-slate-500">
+        <div class="inline-block animate-spin text-2xl mb-2">🔄</div>
+        <p>正在拉取最新版本情报...</p>
+      </div>
+
+      <div v-else-if="releases.length === 0" class="py-16 text-center bg-slate-900/30 rounded-2xl border border-slate-800">
+        <div class="text-4xl mb-3">📭</div>
+        <p class="text-slate-300 font-medium">暂无已捕获的版本情报</p>
+        <p class="text-sm text-slate-500 mt-1">点击右上角“立即执行巡检”按钮即可发起探测！</p>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div 
+          v-for="item in releases" 
+          :key="item.repoName"
+          class="bg-slate-900/70 border border-slate-800 hover:border-slate-700 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-xl hover:shadow-blue-500/5">
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <a 
+                :href="'https://github.com/' + item.repoName" 
+                target="_blank" 
+                class="text-base font-bold text-white hover:text-blue-400 transition truncate" 
+                :title="item.repoName">
+                {{ item.repoName }}
+              </a>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
+                {{ item.tagName }}
+              </span>
+            </div>
+
+            <div class="text-xs text-slate-400 mb-3 flex items-center gap-2">
+              <span>🕒 {{ formatTime(item.publishedAt) }}</span>
+              <span v-if="item.prerelease" class="text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">Pre-release</span>
+            </div>
+
+            <p class="text-sm font-medium text-slate-200 mb-2 line-clamp-1">{{ item.name || item.tagName }}</p>
+
+            <div class="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 text-xs text-slate-400 font-mono overflow-hidden max-h-28 line-clamp-4 leading-relaxed whitespace-pre-wrap">
+              {{ item.body || '该 Release 未提供附加详细描述文本。' }}
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-xs text-slate-500">来源: GitHub Release</span>
+            <a 
+              :href="item.htmlUrl" 
+              target="_blank" 
+              class="inline-flex items-center text-xs font-semibold text-blue-400 hover:text-blue-300">
+              查看发布详情 &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 选项卡 2：历史 Markdown 日报查看器 -->
+    <div v-if="activeTab === 'reports'" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <!-- 左侧日报列表 -->
+      <div class="md:col-span-1 bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-2">报表归档列表</h3>
+        <div class="space-y-1">
+          <button 
+            v-for="rep in reports" 
+            :key="rep"
+            @click="loadReport(rep)"
+            :class="selectedReport === rep ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
+            class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono transition flex items-center justify-between">
+            <span class="truncate">{{ rep }}</span>
+            <span class="text-xs opacity-60">&rsaquo;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右侧 Markdown 内容渲染展示 -->
+      <div class="md:col-span-3 bg-slate-900/60 border border-slate-800 rounded-xl p-6 min-h-[500px]">
+        <div v-if="loadingReportContent" class="py-12 text-center text-slate-500">
+          <div class="inline-block animate-spin text-xl mb-2">📄</div>
+          <p>加载报告详情中...</p>
+        </div>
+        <div v-else class="markdown-body" v-html="renderedReportMarkdown"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, onMounted, computed } = Vue;
+
+    createApp({
+      setup() {
+        const activeTab = ref('cards');
+        const status = ref({});
+        const releases = ref([]);
+        const reports = ref([]);
+        const selectedReport = ref('');
+        const reportContent = ref('');
+        const scanning = ref(false);
+        const loadingReleases = ref(false);
+        const loadingReportContent = ref(false);
+
+        // 检查是本地后端模式还是 GitHub Pages 静态模式
+        const isStaticMode = ref(false);
+
+        // 获取系统健康与配置状态
+        const fetchStatus = async () => {
+          try {
+            const res = await fetch('/api/status');
+            if (res.ok) {
+              status.value = await res.json();
+            } else {
+              enableStaticMode();
+            }
+          } catch (e) {
+            enableStaticMode();
+          }
+        };
+
+        const enableStaticMode = () => {
+          isStaticMode.value = true;
+          status.value = {
+            status: "STATIC_HOSTED",
+            appName: "Whistleblower 吹哨人 (GitHub Pages)",
+            monitoredCount: 5
+          };
+          fetchStaticReports();
+        };
+
+        // GitHub Pages 模式下直接读取仓库 reports 列表
+        const fetchStaticReports = async () => {
+          try {
+            const res = await fetch('https://api.github.com/repos/fengyaocheng/whistleblower/contents/reports');
+            if (res.ok) {
+              const files = await res.json();
+              reports.value = files.filter(f => f.name.endsWith('.md')).map(f => f.name).reverse();
+              if (reports.value.length > 0 && !selectedReport.value) {
+                loadReport(reports.value[0]);
+              }
+            }
+          } catch (err) {
+            console.warn('静态加载 reports 失败:', err);
+          }
+        };
+
+        // 获取最新捕获的 Release 清单
+        const fetchReleases = async () => {
+          if (isStaticMode.value) return;
+          loadingReleases.value = true;
+          try {
+            const res = await fetch('/api/latest');
+            if (res.ok) releases.value = await res.json();
+          } catch (e) {
+            console.error('获取 Release 失败:', e);
+          } finally {
+            loadingReleases.value = false;
+          }
+        };
+
+        // 获取历史报表清单
+        const fetchReports = async () => {
+          if (isStaticMode.value) {
+            return fetchStaticReports();
+          }
+          try {
+            const res = await fetch('/api/reports');
+            if (res.ok) {
+              reports.value = await res.json();
+              if (reports.value.length > 0 && !selectedReport.value) {
+                loadReport(reports.value[0]);
+              }
+            }
+          } catch (e) {
+            console.error('获取报告列表失败:', e);
+          }
+        };
+
+        // 加载指定报表的详情内容
+        const loadReport = async (fileName) => {
+          selectedReport.value = fileName;
+          loadingReportContent.value = true;
+          try {
+            if (isStaticMode.value) {
+              const rawRes = await fetch(`https://raw.githubusercontent.com/fengyaocheng/whistleblower/main/reports/${fileName}`);
+              if (rawRes.ok) {
+                reportContent.value = await rawRes.text();
+                return;
+              }
+            }
+            const res = await fetch(`/api/reports/${encodeURIComponent(fileName)}`);
+            if (res.ok) {
+              reportContent.value = await res.text();
+            }
+          } catch (e) {
+            reportContent.value = '加载报表内容异常: ' + e.message;
+          } finally {
+            loadingReportContent.value = false;
+          }
+        };
+
+        // 触发即时巡检
+        const triggerScan = async () => {
+          scanning.value = true;
+          try {
+            const res = await fetch('/api/scan', { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              releases.value = data.results || [];
+              await fetchReports();
+              await fetchStatus();
+            }
+          } catch (e) {
+            alert('触发巡检失败: ' + e.message);
+          } finally {
+            scanning.value = false;
+          }
+        };
+
+        // 友好时间格式化
+        const formatTime = (timeStr) => {
+          if (!timeStr) return '未知';
+          try {
+            const d = new Date(timeStr);
+            return d.toLocaleString('zh-CN', { hour12: false });
+          } catch {
+            return timeStr;
+          }
+        };
+
+        // 利用 marked 将 Markdown 渲染为 HTML
+        const renderedReportMarkdown = computed(() => {
+          if (!reportContent.value) return '<p class="text-slate-500 italic">请选择左侧的一份报告进行阅读。</p>';
+          return marked.parse(reportContent.value);
+        });
+
+        onMounted(() => {
+          fetchStatus();
+          fetchReleases();
+          fetchReports();
+        });
+
+        return {
+          activeTab,
+          status,
+          releases,
+          reports,
+          selectedReport,
+          reportContent,
+          scanning,
+          loadingReleases,
+          loadingReportContent,
+          triggerScan,
+          loadReport,
+          formatTime,
+          renderedReportMarkdown
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

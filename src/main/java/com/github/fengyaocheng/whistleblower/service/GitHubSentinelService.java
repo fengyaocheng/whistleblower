@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fengyaocheng.whistleblower.config.WhistleblowerProperties;
 import com.github.fengyaocheng.whistleblower.model.RepoReleaseInfo;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -11,7 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * GitHub 哨兵服务：负责请求 GitHub REST API 获取版本与公告情报
@@ -20,10 +25,18 @@ import java.util.Optional;
 @Service
 public class GitHubSentinelService {
 
+    private final WhistleblowerProperties properties;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 内存缓存：保存最新一次巡检的结果列表，便于 Web 前端实时获取
+     */
+    @Getter
+    private final List<RepoReleaseInfo> latestInspectionResults = new CopyOnWriteArrayList<>();
+
     public GitHubSentinelService(WhistleblowerProperties properties, ObjectMapper objectMapper) {
+        this.properties = properties;
         this.objectMapper = objectMapper;
 
         // 构建带有标准 GitHub API 请求头的客户端
@@ -47,6 +60,26 @@ public class GitHubSentinelService {
         }
 
         this.restClient = builder.build();
+    }
+
+    /**
+     * 批量巡检所有在配置中列出的开源项目
+     *
+     * @return 最新的 Release 列表
+     */
+    public synchronized List<RepoReleaseInfo> inspectAll() {
+        log.info("开始执行全量仓库动态探查，监控清单总数: {}", properties.getMonitoredRepos().size());
+        List<RepoReleaseInfo> freshList = new ArrayList<>();
+
+        for (String repo : properties.getMonitoredRepos()) {
+            fetchLatestRelease(repo).ifPresent(freshList::add);
+        }
+
+        // 更新最新缓存
+        latestInspectionResults.clear();
+        latestInspectionResults.addAll(freshList);
+        log.info("全量仓库探查完毕，共捕获 {} 个最新 Release", freshList.size());
+        return Collections.unmodifiableList(freshList);
     }
 
     /**

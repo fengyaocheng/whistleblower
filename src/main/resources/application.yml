@@ -5,8 +5,9 @@ spring:
   application:
     name: whistleblower
   main:
-    # 允许在命令行模式下快速运行并退出，支持云原生与定时任务模式
-    web-application-type: none
+    # 默认开启 Web 服务，便于本地或服务器随时通过浏览器查看前端仪表盘
+    # （在 GitHub Actions 批处理时会通过命令行参数覆盖为 none）
+    web-application-type: servlet
 
 whistleblower:
   # 监控的开源项目列表 (格式: owner/repo)

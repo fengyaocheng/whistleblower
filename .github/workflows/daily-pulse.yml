@@ -12,6 +12,8 @@ on:
 
 permissions:
   contents: write # 赋予 Actions 写入和提交推送代码的权限
+  pages: write    # 赋予部署 GitHub Pages 的权限
+  id-token: write
 
 jobs:
   inspect-and-report:
@@ -29,12 +31,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and Run Whistleblower
+      - name: Build and Run Whistleblower (Batch Mode)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 开始构建并执行吹哨人巡检任务..."
-          mvn compile exec:java -Dexec.mainClass="com.github.fengyaocheng.whistleblower.WhistleblowerApplication"
+          mvn compile exec:java -Dexec.mainClass="com.github.fengyaocheng.whistleblower.WhistleblowerApplication" -Dexec.args="--whistleblower.cli-mode=true"
 
       - name: Commit and Push Daily Report
         uses: stefanzweifel/git-auto-commit-action@v5

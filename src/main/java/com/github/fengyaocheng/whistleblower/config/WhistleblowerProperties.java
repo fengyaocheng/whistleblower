@@ -34,4 +34,9 @@ public class WhistleblowerProperties {
      * GitHub Personal Access Token (可选，配置后可提高 API 调用频率上限)
      */
     private String githubToken;
+
+    /**
+     * 是否为 CLI 批处理单次模式（为 true 时执行完巡检即退出，适用于 CI/CD）
+     */
+    private boolean cliMode = false;
 }
