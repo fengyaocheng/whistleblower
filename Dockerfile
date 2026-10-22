@@ -27,8 +27,8 @@ RUN mkdir -p /app/reports
 # 从构建阶段拷贝编译好的 Jar 包
 COPY --from=builder /build/target/whistleblower-1.0.0-SNAPSHOT.jar /app/whistleblower.jar
 
-# 暴露 Web 端口
-EXPOSE 8080
+# 暴露 Web 端口（改为不常用的专用端口 18088）
+EXPOSE 18088
 
 # 优化 JVM 内存参数（适应云服务器小内存：初始 64M，最大 256M，极大减少资源占用）
 ENTRYPOINT ["java", "-XX:+UseG1GC", "-Xms64m", "-Xmx256m", "-Dfile.encoding=UTF-8", "-jar", "/app/whistleblower.jar"]

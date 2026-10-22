@@ -36,7 +36,7 @@ public class SentinelCommandLineRunner implements CommandLineRunner {
             log.info("============== ✅ 批处理模式：任务执行完毕，正常退出进程 ==============");
             System.exit(0);
         } else {
-            log.info("============== 🌐 Web 模式：服务已常驻运行，访问 http://localhost:8080 查看仪表盘 ==============");
+            log.info("============== 🌐 Web 模式：服务已常驻运行，访问 http://localhost:18088 查看仪表盘 ==============");
         }
     }
 }

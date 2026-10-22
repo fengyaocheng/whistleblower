@@ -9,7 +9,7 @@ services:
     container_name: whistleblower
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "18088:18088"
     volumes:
       # 持久化存储生成的 Markdown 报表至服务器宿主机目录
       - ./reports:/app/reports
