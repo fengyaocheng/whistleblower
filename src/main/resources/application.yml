@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: whistleblower
+  main:
+    # 允许在命令行模式下快速运行并退出，支持云原生与定时任务模式
+    web-application-type: none
+
+whistleblower:
+  # 监控的开源项目列表 (格式: owner/repo)
+  monitored-repos:
+    - spring-projects/spring-boot
+    - alibaba/nacos
+    - apache/dubbo
+    - kubernetes/kubernetes
+    - redis/redis
+  # 报表输出目录
+  output-dir: reports
+  # 是否在检查完毕后自动生成 Markdown 日报
+  generate-report: true
