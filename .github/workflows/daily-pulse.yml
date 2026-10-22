@@ -90,3 +90,16 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # 镜像推送完毕后，自动触发远程 Webhook 通知服务器重启部署
+      - name: Trigger Webhook Auto Deploy
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+        run: |
+          if [ -n "$DEPLOY_WEBHOOK_URL" ]; then
+            echo "🚀 镜像已成功推送，正在呼叫远程 Webhook 触发自动部署..."
+            curl -f -X POST "$DEPLOY_WEBHOOK_URL" || echo "⚠️ Webhook 请求已发送（可能无需返回值或面板已开始重载）"
+            echo "🎉 自动部署通知已成功送达你的服务器！"
+          else
+            echo "💡 未检测到 DEPLOY_WEBHOOK_URL 密钥，跳过远程触发步骤"
+          fi
