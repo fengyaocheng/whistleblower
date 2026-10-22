@@ -325,6 +325,7 @@
             if (res.ok) {
               status.value = await res.json();
               fetchReleases();
+              fetchReports();
             } else {
               enableStaticMode();
             }
