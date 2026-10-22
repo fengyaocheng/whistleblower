@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  🌐 <strong>在线仪表盘 Demo:</strong> <a href="https://wb.rimutuyuan.com" target="_blank">https://wb.rimutuyuan.com</a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Java-21-orange.svg?style=flat-square&logo=openjdk" alt="Java 21" />
   <img src="https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg?style=flat-square&logo=springboot" alt="Spring Boot 3" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License MIT" />
