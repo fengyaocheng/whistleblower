@@ -4,12 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>吹哨人 (Whistleblower) - 开源安全与版本情报仪表盘</title>
-  <!-- Tailwind CSS CDN -->
+  <!-- 使用 Cloudflare cdnjs 高速 CDN 源加速全球与国内访问 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+  <!-- Tailwind CSS 运行时样式 -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Vue 3 CDN -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <!-- Marked.js Markdown 渲染器 -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -507,6 +506,9 @@
                 await loadReport(data.reportFile);
               }
               showToast(`🎉 后端 Java 服务已完成全网探查并生成最新一版: ${fileName}`, 4000);
+            } else if (res.status === 429) {
+              const err = await res.json().catch(() => ({}));
+              showToast(err.message || '⚠️ 巡检请求过于频繁，系统正处于冷却防刷保护中，请稍后再试！', 4000);
             } else {
               // 备用降级逻辑（仅当后端完全不可达且处于纯静态托管时）
               if (isStaticMode.value) {
