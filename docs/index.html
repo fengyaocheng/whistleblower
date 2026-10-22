@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>吹哨人 (Whistleblower) - 开源安全与版本情报仪表盘</title>
   <!-- 使用 Cloudflare cdnjs 高速 CDN 源加速全球与国内访问 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
@@ -163,7 +166,7 @@
           <span>归档历史日报</span>
           <span>📑</span>
         </div>
-        <div class="mt-2 text-3xl font-extrabold text-indigo-400 tracking-tight">{{ reports.length }}</div>
+        <div class="mt-2 text-3xl font-extrabold text-indigo-400 tracking-tight">{{ reports.length > 0 ? reports.length : (status.reportCount || 0) }}</div>
         <p class="text-xs text-slate-500 mt-1">保存在 reports/ 目录</p>
       </div>
 
@@ -187,11 +190,11 @@
         <span class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{{ releases.length }}</span>
       </button>
       <button 
-        @click="activeTab = 'reports'"
+        @click="activeTab = 'reports'; if (reports.length === 0) fetchReports();"
         :class="activeTab === 'reports' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
         class="py-3 px-5 border-b-2 font-medium text-sm transition flex items-center gap-2">
         <span>📑 在线查看历史 Markdown 日报</span>
-        <span class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{{ reports.length }}</span>
+        <span class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{{ reports.length > 0 ? reports.length : (status.reportCount || 0) }}</span>
       </button>
     </div>
 
