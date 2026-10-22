@@ -1,18 +1,22 @@
-name: Manual Whistle & Build
+name: Whistleblower CI/CD & Daily Pulse
 
 on:
-  # 已根据需求停用定时任务，不再消耗任何 GitHub 自动化算力额度
-  # schedule:
-  #   - cron: '15 2 * * *'
-  workflow_dispatch: # 仅保留手动测试触发
+  schedule:
+    # 1. 恢复每日定时任务：每天北京时间上午 10:15 自动巡检并生成日报提交
+    - cron: '15 2 * * *'
+  push:
+    branches: [ main ]
+  workflow_dispatch: # 支持手动点击触发
 
 permissions:
-  contents: write
+  contents: write # 提交代码与日报权限
+  packages: write # 推送 Docker 镜像到 ghcr.io 的权限
   pages: write
   id-token: write
 
 jobs:
-  inspect-and-report:
+  # 任务 1：自动巡检与日报生成打卡
+  daily-pulse:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -27,9 +31,62 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and Run Whistleblower
+      - name: Run Whistleblower Inspection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🚀 开始构建并执行吹哨人巡检任务..."
+          echo "🚀 运行吹哨人定时巡检任务..."
           mvn compile exec:java -Dexec.mainClass="com.github.fengyaocheng.whistleblower.WhistleblowerApplication" -Dexec.args="--whistleblower.cli-mode=true"
+
+      - name: Commit and Push Daily Report
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(report): auto-generate daily open-source intel report [skip ci]"
+          file_pattern: "reports/*.md"
+          commit_user_name: "whistleblower-bot"
+          commit_user_email: "actions@github.com"
+          commit_author: "Whistleblower Bot <actions@github.com>"
+
+  # 任务 2：自动构建 Docker 镜像并推送到 GHCR (GitHub Container Registry)
+  docker-publish:
+    runs-on: ubuntu-latest
+    needs: daily-pulse
+    # 只要是 push 到 main 分支或者手动触发，均自动构建镜像
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

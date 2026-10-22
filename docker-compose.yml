@@ -2,8 +2,10 @@ version: '3.8'
 
 services:
   whistleblower:
+    # 优先拉取 GitHub Actions 自动构建好的多架构官方镜像
+    image: ghcr.io/fengyaocheng/whistleblower:latest
+    # 如果本地想手动重新编译，也可以指定 build
     build: .
-    image: whistleblower:latest
     container_name: whistleblower
     restart: unless-stopped
     ports:
@@ -13,5 +15,5 @@ services:
       - ./reports:/app/reports
     environment:
       - TZ=Asia/Shanghai
-      # 可选：如果希望不受 GitHub 匿名调用频率限制，可在此填入 GitHub Token
+      # 可选：配置 GitHub Token 提高 API 调用限额
       # - GITHUB_TOKEN=ghp_xxxxxx

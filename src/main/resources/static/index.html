@@ -491,28 +491,39 @@
           }
         };
 
-        // 触发巡检按钮
+        // 触发巡检按钮：直调后台 Java 服务执行全量扫描并生成最新报表
         const triggerScan = async () => {
           scanning.value = true;
           try {
-            if (isStaticMode.value) {
-              // 静态模式：前端直接发起即时探查刷新，并给出明确反馈
-              await fetchStaticReleases();
-              await fetchStaticReports();
-              showToast('✅ 已完成即时全网探查与刷新！云端 Actions 每天 10:15 会自动跑 Java 归档新报告。');
+            const res = await fetch('/api/scan', { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              releases.value = data.results || [];
+              await fetchReports();
+              await fetchStatus();
+              
+              const fileName = data.reportFile || '最新日报';
+              if (data.reportFile) {
+                await loadReport(data.reportFile);
+              }
+              showToast(`🎉 后端 Java 服务已完成全网探查并生成最新一版: ${fileName}`, 4000);
             } else {
-              // 后端模式：调用 Spring Boot 接口
-              const res = await fetch('/api/scan', { method: 'POST' });
-              if (res.ok) {
-                const data = await res.json();
-                releases.value = data.results || [];
-                await fetchReports();
-                await fetchStatus();
-                showToast('✅ 巡检执行完毕，已生成最新日报并刷新数据！');
+              // 备用降级逻辑（仅当后端完全不可达且处于纯静态托管时）
+              if (isStaticMode.value) {
+                await fetchStaticReleases();
+                await fetchStaticReports();
+                showToast('💡 当前未连上本地 Java 服务，已通过客户端实时刷新数据');
+              } else {
+                showToast('⚠️ 后台服务调用失败，状态码: ' + res.status);
               }
             }
           } catch (e) {
-            showToast('⚠️ 触发巡检异常: ' + e.message);
+            if (isStaticMode.value) {
+              await fetchStaticReleases();
+              showToast('💡 已执行客户端探查与刷新');
+            } else {
+              showToast('⚠️ 请求后台服务异常: ' + e.message);
+            }
           } finally {
             scanning.value = false;
           }

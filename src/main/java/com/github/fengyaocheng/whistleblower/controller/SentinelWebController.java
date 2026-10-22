@@ -64,11 +64,12 @@ public class SentinelWebController {
     public ResponseEntity<Map<String, Object>> triggerManualScan() throws IOException {
         log.info("收到前端手动巡检请求，开始执行...");
         List<RepoReleaseInfo> results = sentinelService.inspectAll();
-        reportGeneratorService.generateDailyReport(results);
+        java.nio.file.Path reportPath = reportGeneratorService.generateDailyReport(results);
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 200);
         response.put("message", "巡检完成，已生成最新日报");
+        response.put("reportFile", reportPath.getFileName().toString());
         response.put("count", results.size());
         response.put("results", results);
         return ResponseEntity.ok(response);
