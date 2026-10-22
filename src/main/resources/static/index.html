@@ -86,6 +86,12 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-600 selection:text-white">
   <div id="app" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+    <!-- 顶部消息通知 Toast -->
+    <div v-if="toastMessage" class="fixed top-6 right-6 z-50 flex items-center bg-blue-600/90 backdrop-blur-md text-white text-sm font-medium px-4 py-3 rounded-xl shadow-2xl border border-blue-400/30 transition-all duration-300">
+      <span class="mr-2 text-lg">💡</span>
+      <span>{{ toastMessage }}</span>
+    </div>
+
     <!-- 顶部导航栏 -->
     <header class="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-8 border-b border-slate-800 gap-4">
       <div class="flex items-center space-x-4">
@@ -97,7 +103,7 @@
             <h1 class="text-2xl font-bold tracking-tight text-white">吹哨人 (Whistleblower)</h1>
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-              系统在线
+              {{ isStaticMode ? '云端无服务器 (Cloudflare + Pages)' : '本地后端服务在线' }}
             </span>
           </div>
           <p class="text-sm text-slate-400 mt-0.5">开源软件版本动态、安全漏洞情报智能哨兵 & 自动化巡检平台</p>
@@ -117,7 +123,7 @@
           <svg v-else class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          {{ scanning ? '巡检探测中...' : '立即执行巡检' }}
+          {{ scanning ? '正在全网探查中...' : '立即执行巡检' }}
         </button>
 
         <!-- GitHub 跳转链接 -->
@@ -140,7 +146,7 @@
           <span>监控项目数</span>
           <span>📦</span>
         </div>
-        <div class="mt-2 text-3xl font-extrabold text-white tracking-tight">{{ status.monitoredCount || 0 }}</div>
+        <div class="mt-2 text-3xl font-extrabold text-white tracking-tight">{{ status.monitoredCount || 5 }}</div>
         <p class="text-xs text-slate-500 mt-1">自动配置于 application.yml</p>
       </div>
 
@@ -192,9 +198,9 @@
 
     <!-- 选项卡 1：卡片矩阵展示 -->
     <div v-if="activeTab === 'cards'">
-      <div v-if="loadingReleases" class="py-12 text-center text-slate-500">
-        <div class="inline-block animate-spin text-2xl mb-2">🔄</div>
-        <p>正在拉取最新版本情报...</p>
+      <div v-if="loadingReleases" class="py-16 text-center text-slate-400">
+        <div class="inline-block animate-spin text-3xl mb-3">🔄</div>
+        <p class="text-base font-medium">正在实时全网探查开源仓库最新 Release...</p>
       </div>
 
       <div v-else-if="releases.length === 0" class="py-16 text-center bg-slate-900/30 rounded-2xl border border-slate-800">
@@ -217,7 +223,7 @@
                 :title="item.repoName">
                 {{ item.repoName }}
               </a>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
                 {{ item.tagName }}
               </span>
             </div>
@@ -257,7 +263,7 @@
             v-for="rep in reports" 
             :key="rep"
             @click="loadReport(rep)"
-            :class="selectedReport === rep ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
+            :class="selectedReport === rep ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
             class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono transition flex items-center justify-between">
             <span class="truncate">{{ rep }}</span>
             <span class="text-xs opacity-60">&rsaquo;</span>
@@ -291,9 +297,27 @@
         const scanning = ref(false);
         const loadingReleases = ref(false);
         const loadingReportContent = ref(false);
+        const toastMessage = ref('');
+
+        const defaultRepos = [
+          'spring-projects/spring-boot',
+          'alibaba/nacos',
+          'apache/dubbo',
+          'kubernetes/kubernetes',
+          'redis/redis'
+        ];
 
         // 检查是本地后端模式还是 GitHub Pages 静态模式
         const isStaticMode = ref(false);
+
+        const showToast = (msg, duration = 3500) => {
+          toastMessage.value = msg;
+          setTimeout(() => {
+            if (toastMessage.value === msg) {
+              toastMessage.value = '';
+            }
+          }, duration);
+        };
 
         // 获取系统健康与配置状态
         const fetchStatus = async () => {
@@ -301,6 +325,7 @@
             const res = await fetch('/api/status');
             if (res.ok) {
               status.value = await res.json();
+              fetchReleases();
             } else {
               enableStaticMode();
             }
@@ -313,10 +338,12 @@
           isStaticMode.value = true;
           status.value = {
             status: "STATIC_HOSTED",
-            appName: "Whistleblower 吹哨人 (GitHub Pages)",
-            monitoredCount: 5
+            appName: "吹哨人 (Whistleblower)",
+            monitoredCount: defaultRepos.length,
+            monitoredRepos: defaultRepos
           };
           fetchStaticReports();
+          fetchStaticReleases();
         };
 
         // GitHub Pages 模式下直接读取仓库 reports 列表
@@ -335,9 +362,85 @@
           }
         };
 
-        // 获取最新捕获的 Release 清单
+        // 静态模式下通过 GitHub API 直接并发拉取 5 个仓库的最新 Release
+        const fetchStaticReleases = async () => {
+          loadingReleases.value = true;
+          try {
+            const promises = defaultRepos.map(async (repo) => {
+              try {
+                const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
+                if (!res.ok) return null;
+                const node = await res.json();
+                return {
+                  repoName: repo,
+                  tagName: node.tag_name || 'unknown',
+                  name: node.name || node.tag_name,
+                  htmlUrl: node.html_url || `https://github.com/${repo}/releases`,
+                  body: node.body || '',
+                  prerelease: node.prerelease || false,
+                  publishedAt: node.published_at
+                };
+              } catch (e) {
+                return null;
+              }
+            });
+
+            const results = await Promise.all(promises);
+            const valid = results.filter(item => item !== null);
+            if (valid.length > 0) {
+              releases.value = valid;
+            } else {
+              // 如果 GitHub API 触及限流，从已归档的日报中解析兜底数据
+              fallbackFromLatestReport();
+            }
+          } catch (err) {
+            console.error('静态拉取 Release 异常:', err);
+            fallbackFromLatestReport();
+          } finally {
+            loadingReleases.value = false;
+          }
+        };
+
+        // 兜底策略：直接从最新的报告提取数据
+        const fallbackFromLatestReport = async () => {
+          try {
+            const res = await fetch('https://raw.githubusercontent.com/fengyaocheng/whistleblower/main/reports/whistleblower-report-2026-10-22.md');
+            if (res.ok) {
+              const text = await res.text();
+              const lines = text.split('\n');
+              const parsed = [];
+              for (const line of lines) {
+                if (line.startsWith('| **[')) {
+                  const parts = line.split('|').map(s => s.trim());
+                  if (parts.length >= 5) {
+                    const repoMatch = parts[1].match(/\((.*?)\)/);
+                    const tag = parts[2].replace(/`/g, '');
+                    const pubTime = parts[3];
+                    const linkMatch = parts[4].match(/\((.*?)\)/);
+                    if (repoMatch) {
+                      const repoName = repoMatch[1].replace('https://github.com/', '');
+                      parsed.push({
+                        repoName: repoName,
+                        tagName: tag,
+                        name: `${repoName} ${tag}`,
+                        htmlUrl: linkMatch ? linkMatch[1] : repoMatch[1],
+                        publishedAt: pubTime,
+                        body: '详见每日情报报告中的更新说明。'
+                      });
+                    }
+                  }
+                }
+              }
+              if (parsed.length > 0) releases.value = parsed;
+            }
+          } catch (e) {
+            console.warn('报告解析兜底失败:', e);
+          }
+        };
+
+        // 获取最新捕获的 Release 清单（后端模式）
         const fetchReleases = async () => {
-          if (isStaticMode.value) return;
+          if (isStaticMode.value) return fetchStaticReleases();
           loadingReleases.value = true;
           try {
             const res = await fetch('/api/latest');
@@ -351,9 +454,7 @@
 
         // 获取历史报表清单
         const fetchReports = async () => {
-          if (isStaticMode.value) {
-            return fetchStaticReports();
-          }
+          if (isStaticMode.value) return fetchStaticReports();
           try {
             const res = await fetch('/api/reports');
             if (res.ok) {
@@ -390,19 +491,28 @@
           }
         };
 
-        // 触发即时巡检
+        // 触发巡检按钮
         const triggerScan = async () => {
           scanning.value = true;
           try {
-            const res = await fetch('/api/scan', { method: 'POST' });
-            if (res.ok) {
-              const data = await res.json();
-              releases.value = data.results || [];
-              await fetchReports();
-              await fetchStatus();
+            if (isStaticMode.value) {
+              // 静态模式：前端直接发起即时探查刷新，并给出明确反馈
+              await fetchStaticReleases();
+              await fetchStaticReports();
+              showToast('✅ 已完成即时全网探查与刷新！云端 Actions 每天 10:15 会自动跑 Java 归档新报告。');
+            } else {
+              // 后端模式：调用 Spring Boot 接口
+              const res = await fetch('/api/scan', { method: 'POST' });
+              if (res.ok) {
+                const data = await res.json();
+                releases.value = data.results || [];
+                await fetchReports();
+                await fetchStatus();
+                showToast('✅ 巡检执行完毕，已生成最新日报并刷新数据！');
+              }
             }
           } catch (e) {
-            alert('触发巡检失败: ' + e.message);
+            showToast('⚠️ 触发巡检异常: ' + e.message);
           } finally {
             scanning.value = false;
           }
@@ -413,6 +523,7 @@
           if (!timeStr) return '未知';
           try {
             const d = new Date(timeStr);
+            if (isNaN(d.getTime())) return timeStr;
             return d.toLocaleString('zh-CN', { hour12: false });
           } catch {
             return timeStr;
@@ -427,8 +538,6 @@
 
         onMounted(() => {
           fetchStatus();
-          fetchReleases();
-          fetchReports();
         });
 
         return {
@@ -441,6 +550,8 @@
           scanning,
           loadingReleases,
           loadingReportContent,
+          toastMessage,
+          isStaticMode,
           triggerScan,
           loadReport,
           formatTime,
