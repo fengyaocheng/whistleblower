@@ -10,7 +10,7 @@
 
 | 仓库名 | 最新版本 Tag | 发布时间 | 详情链接 |
 | :--- | :--- | :--- | :--- |
-| **[spring-projects/spring-boot](https://github.com/spring-projects/spring-boot)** | `v4.1.1` | 2026-08-20 20:02 | [查看 Release](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.1) |
+| **[spring-projects/spring-boot](https://github.com/spring-projects/spring-boot)** | `v4.1.2` | 2026-10-22 17:04 | [查看 Release](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.2) |
 | **[alibaba/nacos](https://github.com/alibaba/nacos)** | `3.2.4` | 2026-08-27 05:28 | [查看 Release](https://github.com/alibaba/nacos/releases/tag/3.2.4) |
 | **[apache/dubbo](https://github.com/apache/dubbo)** | `dubbo-3.2.20` | 2026-05-17 07:34 | [查看 Release](https://github.com/apache/dubbo/releases/tag/dubbo-3.2.20) |
 | **[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes)** | `v1.37.1` | 2026-09-23 19:13 | [查看 Release](https://github.com/kubernetes/kubernetes/releases/tag/v1.37.1) |
@@ -20,15 +20,20 @@
 
 ## 📝 最新版本发布详细速递
 
-### 🔔 spring-projects/spring-boot `v4.1.1`
+### 🔔 spring-projects/spring-boot `v4.1.2`
 
 - **Release 标题**: 
-- **发布地址**: [https://github.com/spring-projects/spring-boot/releases/tag/v4.1.1](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.1)
+- **发布地址**: [https://github.com/spring-projects/spring-boot/releases/tag/v4.1.2](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.2)
 
 ```markdown
-## :warning: Attention Required
+## :star: New Features
 
-- Spring Boot's Gradle plugin no longer automatically configures gRPC when the Protobuf plugin is applied. This behavior caused problems for those using Protobuf without gRPC. To opt in to the configuration of gRPC, configure the `protobuf` extension with the `grpc
+- Add TWENTY\_SEVEN to JavaVersion enum [#51426](https://github.com/spring-projects/spring-boot/issues/51426)
+
+## :lady_beetle: Bug Fixes
+
+- OriginTrackedResource does not implement equals correctly [#52267](https://github.com/spring-projects/spring-boot/issues/52267)
+
 
 ...(省略更多更新日志，请查看原文)
 ```
